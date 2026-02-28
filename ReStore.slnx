@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ReStore.API/ReStore.API.csproj" />
+  <Project Path="ReStore.Application/ReStore.Application.csproj" />
+  <Project Path="ReStore.Core/ReStore.Core.csproj" />
+  <Project Path="ReStore.Infrastructure/ReStore.Infrastructure.csproj" />
+</Solution>
