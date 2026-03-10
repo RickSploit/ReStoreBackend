@@ -24,6 +24,7 @@ namespace ReStore.Core.Entities
         // ربط الجهاز بالتصنيف (زي ثلاجة، غسالة)
         public int CategoryId { get; set; }
         public Category Category { get; set; } = null!;
+        public string? ImageUrl { get; set; }
     }
 
     public enum ApplianceCondition

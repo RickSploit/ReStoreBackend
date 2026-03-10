@@ -1,31 +1,38 @@
 using Microsoft.EntityFrameworkCore;
-using ReStore.Infrastructure.Data; 
-
+using ReStore.Infrastructure.Data;
+using ReStore.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-// السطر ده بيربط الـ API بالداتا بيز باستخدام العنوان اللي كتبناه
+
+// الداتا بيز
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// ==========================================
+// 1. السطور الجديدة بتاعة إعداد الـ Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+// ==========================================
 
- 
-builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddScoped<ImageService>(); // خدمة الصور بتاعتنا
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // ==========================================
+    // 2. السطور الجديدة لتشغيل شاشة الـ Swagger
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    // ==========================================
 }
 
 app.UseHttpsRedirection();
 
-app.Run();
+app.UseStaticFiles(); // عشان السيرفر يرضى يبعت الصور
+
 app.MapControllers();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+app.Run();
