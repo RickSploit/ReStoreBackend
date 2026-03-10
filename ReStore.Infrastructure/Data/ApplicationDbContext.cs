@@ -1,16 +1,19 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ReStore.Core.Entities;
 
 namespace ReStore.Infrastructure.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }
 
-        // 1. الجداول الأساسية
-        public DbSet<User> Users { get; set; }
+        // مسحنا سطر الـ Users من هنا لأنه بيتكريت لوحده تبع الـ Identity
+
+        // الجداول الأساسية التانية زي ما هي
         public DbSet<Appliance> Appliances { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Order> Orders { get; set; }
@@ -20,7 +23,6 @@ namespace ReStore.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
             // ==========================================
             // العلاقات (Fluent API)
             // ==========================================

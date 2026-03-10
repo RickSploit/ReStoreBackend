@@ -1,13 +1,10 @@
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Identity;
 
 namespace ReStore.Core.Entities
 {
-    public class User
+    public class User : IdentityUser<int>
     {
-        public int Id { get; set; } // Primary Key
         public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
         
         // استخدام Enum عشان نحدد دور المستخدم (مشتري، بائع، إلخ)
         public UserRole Role { get; set; } 
