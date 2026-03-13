@@ -74,5 +74,50 @@ public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto d
 
     return Ok(appliance); // ممكن نرجع DTO تاني للـ Get بعدين، بس خلينا كدة دلوقتي
 }
+
+// تعديل جهاز موجود
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateAppliance(int id, [FromForm] ApplianceCreateDto dto, IFormFile? file)
+    {
+        var appliance = await _context.Appliances.FindAsync(id);
+
+        if (appliance == null)
+            return NotFound(new { message = "Appliance not found" });
+
+        // تحديث البيانات
+        appliance.Title = dto.Title;
+        appliance.Description = dto.Description;
+        appliance.Price = dto.Price;
+        appliance.CategoryId = dto.CategoryId;
+        appliance.SellerId = dto.SellerId;
+        appliance.Condition = (ApplianceCondition)dto.Condition;
+
+        // لو المستخدم بعت صورة جديدة، نرفعها ونحدث ImageUrl
+        if (file != null)
+        {
+            var imageUrl = await _imageService.UploadImageAsync(file);
+            appliance.ImageUrl = imageUrl;
+        }
+
+        _context.Appliances.Update(appliance);
+        await _context.SaveChangesAsync();
+
+        return Ok(appliance);
+    }
+
+    // حذف جهاز
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteAppliance(int id)
+    {
+        var appliance = await _context.Appliances.FindAsync(id);
+
+        if (appliance == null)
+            return NotFound(new { message = "Appliance not found" });
+
+        _context.Appliances.Remove(appliance);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Appliance deleted successfully" });
+    }
     }
 }
