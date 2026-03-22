@@ -22,25 +22,44 @@ namespace ReStore.API.Controllers
 
         // جلب كل الأجهزة
         [HttpGet]
-public async Task<IActionResult> GetAppliances()
+[HttpGet]
+public async Task<IActionResult> GetAppliances(
+    [FromQuery] string? search,
+    [FromQuery] decimal? minPrice,
+    [FromQuery] decimal? maxPrice)
 {
-    // 1. نجيب كل الأجهزة من الداتا بيز
-    var appliances = await _context.Appliances.ToListAsync();
+    var query = _context.Appliances.AsQueryable();
 
-    // 2. السطر ده بيجيب عنوان السيرفر الحالي (مثلاً https://localhost:5104)
+    // Search باسم الجهاز
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        query = query.Where(a => a.Title.Contains(search));
+    }
+
+    // Filter بأقل سعر
+    if (minPrice.HasValue)
+    {
+        query = query.Where(a => a.Price >= minPrice.Value);
+    }
+
+    // Filter بأعلى سعر
+    if (maxPrice.HasValue)
+    {
+        query = query.Where(a => a.Price <= maxPrice.Value);
+    }
+
+    var appliances = await query.ToListAsync();
+
     var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
 
-    // 3. نحول الـ Entity المعقد لـ DTO نضيف، ونظبط لينك الصورة
     var applianceDtos = appliances.Select(a => new ApplianceDto
     {
         Id = a.Id,
         Title = a.Title,
         Description = a.Description,
         Price = a.Price,
-        Condition = a.Condition.ToString(), // بيحول الـ Enum لكلمة مقروءة
-        
-        // لو في صورة، الزق الـ baseUrl في مسار الصورة، لو مفيش رجع null
-        ImageUrl = string.IsNullOrEmpty(a.ImageUrl) ? null : $"{baseUrl}{a.ImageUrl}"
+        Condition = a.Condition.ToString(),
+        ImageUrl = $"{baseUrl}{a.ImageUrl}"
     }).ToList();
 
     return Ok(applianceDtos);
