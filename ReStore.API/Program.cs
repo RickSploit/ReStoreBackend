@@ -30,6 +30,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddScoped<ImageService>(); // خدمة الصور بتاعتنا
 
+// تعريف مكتبة الـ Identity
+builder.Services.AddIdentity<User, IdentityRole<int>>()
+    .AddEntityFrameworkStores<ApplicationDbContext>() // تأكد إن ده اسم كلاس الداتا بيز بتاعك
+    .AddDefaultTokenProviders();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
