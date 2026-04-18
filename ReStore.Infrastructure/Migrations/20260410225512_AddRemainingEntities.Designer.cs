@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReStore.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using ReStore.Infrastructure.Data;
 namespace ReStore.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410225512_AddRemainingEntities")]
+    partial class AddRemainingEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -248,6 +251,34 @@ namespace ReStore.Infrastructure.Migrations
                     b.ToTable("DeliveryInfo");
                 });
 
+            modelBuilder.Entity("ReStore.API.Entities.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewedUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReviewerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reviews");
+                });
+
             modelBuilder.Entity("ReStore.API.Entities.TechnicianProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -266,12 +297,11 @@ namespace ReStore.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("TechnicianProfiles");
                 });
@@ -292,6 +322,9 @@ namespace ReStore.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsSparePart")
@@ -470,41 +503,6 @@ namespace ReStore.Infrastructure.Migrations
                     b.ToTable("RepairRequests");
                 });
 
-            modelBuilder.Entity("ReStore.Core.Entities.Review", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("ApplianceId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ReviewedUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ReviewerId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplianceId");
-
-                    b.HasIndex("ReviewedUserId");
-
-                    b.HasIndex("ReviewerId");
-
-                    b.ToTable("Reviews");
-                });
-
             modelBuilder.Entity("ReStore.Core.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -634,7 +632,7 @@ namespace ReStore.Infrastructure.Migrations
             modelBuilder.Entity("ReStore.API.Entities.ApplianceImage", b =>
                 {
                     b.HasOne("ReStore.Core.Entities.Appliance", "Appliance")
-                        .WithMany("Images")
+                        .WithMany()
                         .HasForeignKey("ApplianceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -662,17 +660,6 @@ namespace ReStore.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("ReStore.API.Entities.TechnicianProfile", b =>
-                {
-                    b.HasOne("ReStore.Core.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ReStore.Core.Entities.Appliance", b =>
@@ -762,36 +749,6 @@ namespace ReStore.Infrastructure.Migrations
                     b.Navigation("Buyer");
 
                     b.Navigation("Technician");
-                });
-
-            modelBuilder.Entity("ReStore.Core.Entities.Review", b =>
-                {
-                    b.HasOne("ReStore.Core.Entities.Appliance", "Appliance")
-                        .WithMany()
-                        .HasForeignKey("ApplianceId");
-
-                    b.HasOne("ReStore.Core.Entities.User", "ReviewedUser")
-                        .WithMany()
-                        .HasForeignKey("ReviewedUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ReStore.Core.Entities.User", "Reviewer")
-                        .WithMany()
-                        .HasForeignKey("ReviewerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Appliance");
-
-                    b.Navigation("ReviewedUser");
-
-                    b.Navigation("Reviewer");
-                });
-
-            modelBuilder.Entity("ReStore.Core.Entities.Appliance", b =>
-                {
-                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("ReStore.Core.Entities.Category", b =>

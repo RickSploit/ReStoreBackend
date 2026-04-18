@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReStore.Infrastructure.Data;
-using ReStore.Core.Entities; 
+using ReStore.Core.Entities;
+using ReStore.API.DTOs;
 
 namespace ReStore.API.Controllers
 {
@@ -11,42 +12,42 @@ namespace ReStore.API.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        // 1. هنا بنطلب من الـ API يدينا نسخة من الداتا بيز بتاعتنا
         public CategoriesController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // 2. دي الـ Endpoint اللي هترجع الأقسام للـ Front-end
         [HttpGet]
         public async Task<IActionResult> GetCategories()
         {
-            // بنروح لجدول الأقسام، ونجيب كل الداتا اللي جواه ونحولها لليستة
             var categories = await _context.Categories.ToListAsync();
             
-            // بنرجع الداتا دي بـ Status Code 200 (يعني كله تمام OK)
             return Ok(categories);
         }
 
-        // دي Endpoint لإضافة قسم جديد
         [HttpPost]
-        public async Task<IActionResult> CreateCategory([FromBody] Category category)
-        {
-            if (string.IsNullOrWhiteSpace(category.Name))
-                return BadRequest(new { message = "Category name is required." });
+        [HttpPost]
+public async Task<ActionResult<CategoryDto>> CreateCategory(CategoryCreateDto categoryDto)
+{
+    var category = new Category
+    {
+        Name = categoryDto.Name,
+        
+    };
 
-            var newCategory = new Category
-            {
-                Name = category.Name
-            };
+    _context.Categories.Add(category);
+    await _context.SaveChangesAsync();
 
-            _context.Categories.Add(newCategory);
-            await _context.SaveChangesAsync();
+    var resultDto = new CategoryDto
+    {
+        Id = category.Id,
+        Name = category.Name,
+        
+    };
 
-            return Ok(newCategory);
-        }
+    return Ok(resultDto);
+}
 
-        // دي Endpoint لتعديل قسم موجود
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category updatedCategory)
         {
@@ -65,7 +66,6 @@ namespace ReStore.API.Controllers
             return Ok(new { message = "Category updated successfully.", category });
         }
 
-        // دي Endpoint لحذف قسم
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {

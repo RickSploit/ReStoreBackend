@@ -6,42 +6,56 @@ using ReStore.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// الداتا بيز
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-// 1. إضافة خدمات الـ Identity
+
 builder.Services.AddIdentityCore<User>(options =>
 {
-    // تقدر هنا تظبط شروط الباسورد (مثلاً مش لازم حروف معقدة دلوقتي عشان التست)
+    
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 8;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
 })
-.AddRoles<IdentityRole<int>>() // تفعيل الأدوار (بائع/مشتري)
-.AddEntityFrameworkStores<ApplicationDbContext>(); // ربطهم بالداتا بيز بتاعتنا
+
+.AddRoles<IdentityRole<int>>() 
+.AddSignInManager<SignInManager<User>>()
+.AddEntityFrameworkStores<ApplicationDbContext>();
 
 // ==========================================
-// 1. السطور الجديدة بتاعة إعداد الـ Swagger
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // ==========================================
 
 builder.Services.AddControllers();
-builder.Services.AddScoped<ImageService>(); // خدمة الصور بتاعتنا
+builder.Services.AddScoped<ImageService>(); 
 
-// تعريف مكتبة الـ Identity
-builder.Services.AddIdentity<User, IdentityRole<int>>()
-    .AddEntityFrameworkStores<ApplicationDbContext>() // تأكد إن ده اسم كلاس الداتا بيز بتاعك
-    .AddDefaultTokenProviders();
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()    
+              .AllowAnyMethod()    
+              .AllowAnyHeader();   
+    });
+});
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseHttpsRedirection();
+
+app.UseCors("AllowAll"); 
+
+app.UseAuthentication(); 
+app.UseAuthorization();
+
+
 if (app.Environment.IsDevelopment())
 {
     // ==========================================
-    // 2. السطور الجديدة لتشغيل شاشة الـ Swagger
     app.UseSwagger();
     app.UseSwaggerUI();
     // ==========================================
@@ -49,7 +63,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseStaticFiles(); // عشان السيرفر يرضى يبعت الصور
+app.UseStaticFiles();
 
 app.MapControllers();
 

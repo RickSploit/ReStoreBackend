@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReStore.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using ReStore.Infrastructure.Data;
 namespace ReStore.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260411123205_FixRelationships")]
+    partial class FixRelationships
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -292,6 +295,9 @@ namespace ReStore.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsSparePart")
@@ -634,7 +640,7 @@ namespace ReStore.Infrastructure.Migrations
             modelBuilder.Entity("ReStore.API.Entities.ApplianceImage", b =>
                 {
                     b.HasOne("ReStore.Core.Entities.Appliance", "Appliance")
-                        .WithMany("Images")
+                        .WithMany()
                         .HasForeignKey("ApplianceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -787,11 +793,6 @@ namespace ReStore.Infrastructure.Migrations
                     b.Navigation("ReviewedUser");
 
                     b.Navigation("Reviewer");
-                });
-
-            modelBuilder.Entity("ReStore.Core.Entities.Appliance", b =>
-                {
-                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("ReStore.Core.Entities.Category", b =>

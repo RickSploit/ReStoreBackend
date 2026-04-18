@@ -1,30 +1,29 @@
+using ReStore.API.Entities;
+
 namespace ReStore.Core.Entities
 {
     public class Appliance
     {
-        public int Id { get; set; } // Primary Key
+        public int Id { get; set; } 
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }
         
-        // حالات الجهاز
         public ApplianceCondition Condition { get; set; }
-        public bool IsSparePart { get; set; } // هل بيتباع كقطع غيار؟
+        public bool IsSparePart { get; set; }
         public ApplianceStatus Status { get; set; }
         
-        // وزن الجهاز (ده التريك اللي هنحسب بيه تقليل النفايات الإلكترونية بعدين)
         public decimal Weight_Kg { get; set; }
 
-        // ====== العلاقات (Foreign Keys) ======
-        
-        // ربط الجهاز بالبائع
         public int SellerId { get; set; }
-        public User Seller { get; set; } = null!; // Navigation Property
+        public User Seller { get; set; } = null!; 
 
-        // ربط الجهاز بالتصنيف (زي ثلاجة، غسالة)
         public int CategoryId { get; set; }
         public Category Category { get; set; } = null!;
-        public string? ImageUrl { get; set; }
+        
+        // --- التصحيح هنا ---
+        // مسحنا ImageUrl وحطينا علاقة الـ One-to-Many مع جدول الصور
+        public ICollection<ApplianceImage> Images { get; set; } = new List<ApplianceImage>();
     }
 
     public enum ApplianceCondition
