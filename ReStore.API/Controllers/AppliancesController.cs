@@ -63,6 +63,31 @@ namespace ReStore.API.Controllers
 
             return Ok(applianceDtos);
         }
+        [HttpGet("{id}")]
+public async Task<ActionResult<ApplianceDto>> GetApplianceDetails(int id)
+{
+    var appliance = await _context.Appliances
+        .Include(a => a.Images)
+        .Include(a => a.Category)
+        .FirstOrDefaultAsync(a => a.Id == id);
+
+    if (appliance == null)
+        return NotFound(new { message = "الجهاز غير موجود" });
+
+    // تحويل الـ Entity لـ DTO عشان نرجعه للفرونت
+    var applianceDto = new ApplianceDto 
+    {
+        Id = appliance.Id,
+        Title = appliance.Title,
+        Description = appliance.Description,
+        Price = appliance.Price,
+        CategoryName = appliance.Category.Name,
+        // بنجيب كل صور الجهاز عشان تظهر في الجاليري بتاع صفحة التفاصيل
+        ImageUrls = appliance.Images.Select(i => i.Url).ToList() 
+    };
+
+    return Ok(applianceDto);
+}
 
         [HttpPost]
         public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto, IFormFile file)
