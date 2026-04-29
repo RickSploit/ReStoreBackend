@@ -1,0 +1,6 @@
+$kind: http-request
+name: /api/Appliances
+url: "{{baseUrl}}/api/Appliances"
+method: GET
+examples: ./.resources/-api-Appliances.resources/examples
+order: 1000

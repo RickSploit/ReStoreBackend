@@ -1,0 +1,37 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/Appliances"
+  method: POST
+  headers:
+    Content-Type: multipart/form-data
+  body:
+    type: formdata
+    content:
+      - type: text
+        key: Title
+        value: string
+      - type: text
+        key: Description
+        value: string
+      - type: text
+        key: Price
+        value: "3057.784718375689"
+      - type: text
+        key: CategoryId
+        value: "3134"
+      - type: text
+        key: SellerId
+        value: "2333"
+      - type: text
+        key: Condition
+        value: "1656"
+      - type: file
+        key: file
+        src: []
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000
