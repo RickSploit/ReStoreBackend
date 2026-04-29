@@ -48,8 +48,6 @@ namespace ReStore.Controllers
                 return BadRequest(new { Errors = errors });
             }
 
-            // إعطاء صلاحية عميل (بائع/مشتري) بشكل افتراضي للجميع
-            // await _userManager.AddToRoleAsync(user, "Customer");
 
             return Ok(new { Message = "User registered successfully! You can now log in." });
         }

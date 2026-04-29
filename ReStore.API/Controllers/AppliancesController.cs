@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReStore.Core.Entities;
 using ReStore.Infrastructure.Data;
-using ReStore.Infrastructure.Services; // عشان يشوف خدمة الصور
+using ReStore.Infrastructure.Services; 
 using ReStore.API.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using ReStore.API.Entities;
 
 namespace ReStore.API.Controllers
 {
@@ -20,59 +23,165 @@ namespace ReStore.API.Controllers
             _imageService = imageService;
         }
 
-        // جلب كل الأجهزة
         [HttpGet]
-public async Task<IActionResult> GetAppliances()
-{
-    // 1. نجيب كل الأجهزة من الداتا بيز
-    var appliances = await _context.Appliances.ToListAsync();
+        public async Task<IActionResult> GetAppliances(
+            [FromQuery] string? search,
+            [FromQuery] decimal? minPrice,
+            [FromQuery] decimal? maxPrice)
+        {
+            var query = _context.Appliances.Include(a => a.Images).AsQueryable();
 
-    // 2. السطر ده بيجيب عنوان السيرفر الحالي (مثلاً https://localhost:5104)
-    var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(a => a.Title.Contains(search));
+            }
 
-    // 3. نحول الـ Entity المعقد لـ DTO نضيف، ونظبط لينك الصورة
-    var applianceDtos = appliances.Select(a => new ApplianceDto
-    {
-        Id = a.Id,
-        Title = a.Title,
-        Description = a.Description,
-        Price = a.Price,
-        Condition = a.Condition.ToString(), // بيحول الـ Enum لكلمة مقروءة
-        
-        // لو في صورة، الزق الـ baseUrl في مسار الصورة، لو مفيش رجع null
-        ImageUrl = string.IsNullOrEmpty(a.ImageUrl) ? null : $"{baseUrl}{a.ImageUrl}"
-    }).ToList();
+            if (minPrice.HasValue)
+            {
+                query = query.Where(a => a.Price >= minPrice.Value);
+            }
 
-    return Ok(applianceDtos);
-}
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(a => a.Price <= maxPrice.Value);
+            }
 
-        // إضافة جهاز جديد بالصورة بتاعته
+            var appliances = await query.ToListAsync();
+            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+
+            var applianceDtos = appliances.Select(a => new ApplianceDto
+            {
+                Id = a.Id,
+                Title = a.Title,
+                Description = a.Description,
+                Price = a.Price,
+                Condition = a.Condition.ToString(),
+                ImageUrl = a.Images.FirstOrDefault(i => i.IsMain)?.Url != null 
+                           ? $"{baseUrl}{a.Images.FirstOrDefault(i => i.IsMain)?.Url}" 
+                           : null
+            }).ToList();
+
+            return Ok(applianceDtos);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApplianceDto>> GetApplianceDetails(int id)
+        {
+            var appliance = await _context.Appliances
+                .Include(a => a.Images)
+                .Include(a => a.Category)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (appliance == null)
+                return NotFound(new { message = "Appliance not found." });
+
+            var applianceDto = new ApplianceDto 
+            {
+                Id = appliance.Id,
+                Title = appliance.Title,
+                Description = appliance.Description,
+                Price = appliance.Price,
+                CategoryName = appliance.Category?.Name,
+                ImageUrls = appliance.Images.Select(i => i.Url).ToList() 
+            };
+
+            return Ok(applianceDto);
+        }
+
         [HttpPost]
-public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto, IFormFile file)
-{
-    // 1. بناخد البيانات النظيفة من الـ DTO ونحطها في الـ Entity بتاع الداتا بيز
-    var appliance = new Appliance
-    {
-        Title = dto.Title,
-        Description = dto.Description,
-        Price = dto.Price,
-        CategoryId = dto.CategoryId,
-        SellerId = dto.SellerId,
-        Condition = (ApplianceCondition)dto.Condition
-    };
+        [Authorize]
+        public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString)) 
+                return Unauthorized(new { message = "User is not logged in." });
+                
+            var sellerId = int.Parse(userIdString);
 
-    // 2. لو في صورة مبعوتة، نرفعها
-    if (file != null)
-    {
-        var imageUrl = await _imageService.UploadImageAsync(file);
-        appliance.ImageUrl = imageUrl;
-    }
+            var appliance = new Appliance
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                Price = dto.Price,
+                CategoryId = dto.CategoryId,
+                SellerId = sellerId,
+                Condition = (ApplianceCondition)dto.Condition
+            };
 
-    // 3. نحفظ في الداتا بيز
-    _context.Appliances.Add(appliance);
-    await _context.SaveChangesAsync();
+            _context.Appliances.Add(appliance);
+            await _context.SaveChangesAsync();
 
-    return Ok(appliance); // ممكن نرجع DTO تاني للـ Get بعدين، بس خلينا كدة دلوقتي
-}
+            if (dto.Image != null)
+            {
+                var imageUrl = await _imageService.UploadImageAsync(dto.Image);
+                var applianceImage = new ApplianceImage
+                {
+                    Url = imageUrl,
+                    IsMain = true,
+                    ApplianceId = appliance.Id
+                };
+                _context.ApplianceImages.Add(applianceImage);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { message = "Appliance created successfully!", applianceId = appliance.Id }); 
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateAppliance(int id, [FromForm] ApplianceCreateDto dto)
+        {
+            var appliance = await _context.Appliances.FindAsync(id);
+
+            if (appliance == null)
+                return NotFound(new { message = "Appliance not found" });
+
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdString == null || int.Parse(userIdString) != appliance.SellerId)
+                return Forbid();
+
+            appliance.Title = dto.Title;
+            appliance.Description = dto.Description;
+            appliance.Price = dto.Price;
+            appliance.CategoryId = dto.CategoryId;
+            appliance.Condition = (ApplianceCondition)dto.Condition;
+
+            _context.Appliances.Update(appliance);
+            await _context.SaveChangesAsync();
+
+            if (dto.Image != null)
+            {
+                var imageUrl = await _imageService.UploadImageAsync(dto.Image);
+                var applianceImage = new ApplianceImage
+                {
+                    Url = imageUrl,
+                    IsMain = false,
+                    ApplianceId = appliance.Id
+                };
+                _context.ApplianceImages.Add(applianceImage);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { message = "Appliance updated successfully" });
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteAppliance(int id)
+        {
+            var appliance = await _context.Appliances.FindAsync(id);
+
+            if (appliance == null)
+                return NotFound(new { message = "Appliance not found" });
+
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdString == null || int.Parse(userIdString) != appliance.SellerId)
+                return Forbid();
+
+            _context.Appliances.Remove(appliance);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Appliance deleted successfully" });
+        }
     }
 }

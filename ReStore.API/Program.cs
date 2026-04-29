@@ -16,7 +16,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// تعريف الـ Identity
 builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 {
     options.Password.RequireDigit = false;
@@ -80,16 +79,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// عشان السيرفر يرضى يبعت الصور للفرونت إند
 app.UseStaticFiles(); 
 
-// التوجيه لازم ييجي قبل الكورز
 app.UseRouting();
 
-// تفعيل الكورز
 app.UseCors("AllowAll"); 
 
-// المصادقة والصلاحيات لازم يجوا بعد الكورز وقبل الكنترولرز
 app.UseAuthentication(); 
 app.UseAuthorization();
 

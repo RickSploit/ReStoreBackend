@@ -1,12 +1,17 @@
-namespace ReStore.API.DTOs
+namespace ReStore.API.DTOs 
 {
     public class ApplianceDto
     {
         public int Id { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public string Condition { get; set; } // هنخليها string عشان ترجع "Used" بدل رقم 1
-        public string ImageUrl { get; set; }
+        public string Condition { get; set; } = string.Empty; 
+        public string CategoryName { get; set; } = string.Empty;
+        
+    
+        public string? ImageUrl { get; set; } 
+        
+        public List<string> ImageUrls { get; set; } = new List<string>(); 
     }
 }
