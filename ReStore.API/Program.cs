@@ -3,53 +3,95 @@ using Microsoft.EntityFrameworkCore;
 using ReStore.Core.Entities;
 using ReStore.Infrastructure.Data;
 using ReStore.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// الداتا بيز
+// ==========================================
+// 1. Services Configuration 
+// ==========================================
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-// 1. إضافة خدمات الـ Identity
-builder.Services.AddIdentityCore<User>(options =>
+
+// تعريف الـ Identity
+builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 {
-    // تقدر هنا تظبط شروط الباسورد (مثلاً مش لازم حروف معقدة دلوقتي عشان التست)
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 8;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
 })
-.AddRoles<IdentityRole<int>>() // تفعيل الأدوار (بائع/مشتري)
-.AddEntityFrameworkStores<ApplicationDbContext>(); // ربطهم بالداتا بيز بتاعتنا
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
-// ==========================================
-// 1. السطور الجديدة بتاعة إعداد الـ Swagger
+// 🔐 إعدادات المصادقة بالتوكن (JWT Authentication)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-// ==========================================
-
 builder.Services.AddControllers();
-builder.Services.AddScoped<ImageService>(); // خدمة الصور بتاعتنا
 
-// تعريف مكتبة الـ Identity
-builder.Services.AddIdentity<User, IdentityRole<int>>()
-    .AddEntityFrameworkStores<ApplicationDbContext>() // تأكد إن ده اسم كلاس الداتا بيز بتاعك
-    .AddDefaultTokenProviders();
+// خدمة الصور بتاعتنا
+builder.Services.AddScoped<ImageService>(); 
+
+// إعدادات الكورز (CORS) 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200") 
+              .AllowAnyMethod()    
+              .AllowAnyHeader()
+              .AllowCredentials(); 
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ==========================================
+// 2. HTTP Request Pipeline (الترتيب هنا حياة أو موت)
+// ==========================================
+
 if (app.Environment.IsDevelopment())
 {
-    // ==========================================
-    // 2. السطور الجديدة لتشغيل شاشة الـ Swagger
     app.UseSwagger();
     app.UseSwaggerUI();
-    // ==========================================
 }
 
 app.UseHttpsRedirection();
 
-app.UseStaticFiles(); // عشان السيرفر يرضى يبعت الصور
+// عشان السيرفر يرضى يبعت الصور للفرونت إند
+app.UseStaticFiles(); 
+
+// التوجيه لازم ييجي قبل الكورز
+app.UseRouting();
+
+// تفعيل الكورز
+app.UseCors("AllowAll"); 
+
+// المصادقة والصلاحيات لازم يجوا بعد الكورز وقبل الكنترولرز
+app.UseAuthentication(); 
+app.UseAuthorization();
 
 app.MapControllers();
 
