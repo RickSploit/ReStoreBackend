@@ -10,8 +10,6 @@ namespace ReStore.API.DTOs
         public int CategoryId { get; set; }
         public int Condition { get; set; } 
         
-        // شيلنا الـ SellerId من هنا
-        // وضفنا الصورة عشان تيجي مع الـ Form
         public IFormFile Image { get; set; } 
     }
 }

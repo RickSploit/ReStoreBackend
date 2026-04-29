@@ -92,11 +92,10 @@ namespace ReStore.API.Controllers
         [Authorize]
         public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString)) 
-                return Unauthorized(new { message = "User is not logged in." });
-                
-            var sellerId = int.Parse(userIdString);
+            // استخدام الفانكشن السحرية الجديدة
+            var sellerId = GetCurrentUserId();
+            if (sellerId == null) 
+                return Unauthorized(new { message = "Invalid token: User ID is missing or incorrect." });
 
             var appliance = new Appliance
             {
@@ -104,7 +103,7 @@ namespace ReStore.API.Controllers
                 Description = dto.Description,
                 Price = dto.Price,
                 CategoryId = dto.CategoryId,
-                SellerId = sellerId,
+                SellerId = sellerId.Value,
                 Condition = (ApplianceCondition)dto.Condition
             };
 
@@ -136,8 +135,9 @@ namespace ReStore.API.Controllers
             if (appliance == null)
                 return NotFound(new { message = "Appliance not found" });
 
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdString == null || int.Parse(userIdString) != appliance.SellerId)
+            // استخدام الفانكشن السحرية الجديدة للحماية
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == null || currentUserId.Value != appliance.SellerId)
                 return Forbid();
 
             appliance.Title = dto.Title;
@@ -174,14 +174,29 @@ namespace ReStore.API.Controllers
             if (appliance == null)
                 return NotFound(new { message = "Appliance not found" });
 
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdString == null || int.Parse(userIdString) != appliance.SellerId)
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == null || currentUserId.Value != appliance.SellerId)
                 return Forbid();
 
             _context.Appliances.Remove(appliance);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Appliance deleted successfully" });
+        }
+
+        // ==========================================
+        // ✨ الفانكشن السحرية لاستخراج الـ ID بشكل آمن ✨
+        // ==========================================
+        private int? GetCurrentUserId()
+        {
+            // بتدور على الكليم اللي قيمته تنفع تتحول لرقم فقط وتتجاهل الإيميل
+            var claim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier && int.TryParse(c.Value, out _));
+            
+            if (claim != null && int.TryParse(claim.Value, out int userId))
+            {
+                return userId;
+            }
+            return null;
         }
     }
 }
