@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using ReStore.Application.Interfaces;
+using ReStore.Application.Services;
 using ReStore.Core.Entities;
 using ReStore.Infrastructure.Data;
 using ReStore.Infrastructure.Services;
@@ -27,6 +29,10 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 .AddDefaultTokenProviders();
 
 // 🔐 إعدادات المصادقة بالتوكن (JWT Authentication)
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "ThisIsASuperSecretKeyForReStoreAppThatNeedsToBeLongEnough123!";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ReStoreAPI";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ReStoreUsers";
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -40,9 +46,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-        ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
@@ -52,6 +58,9 @@ builder.Services.AddControllers();
 
 // خدمة الصور بتاعتنا
 builder.Services.AddScoped<ImageService>(); 
+
+// خدمة الإيميل
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // إعدادات الكورز (CORS) 
 builder.Services.AddCors(options =>

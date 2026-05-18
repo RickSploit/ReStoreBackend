@@ -12,8 +12,9 @@ namespace ReStore.API.Entities
         public string Description { get; set; }
         public string Status { get; set; } // Open, Resolved
 
-        public string UserId { get; set; } // اللي قدم الشكوى
-        public int OrderId { get; set; } // الشكوى بخصوص طلب إيه
+public int UserId { get; set; }
+        public User User { get; set; }
+        public int OrderId { get; set; }
         public Order Order { get; set; }
     }
 }

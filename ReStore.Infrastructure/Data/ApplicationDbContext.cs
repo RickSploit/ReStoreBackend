@@ -17,12 +17,14 @@ namespace ReStore.Infrastructure.Data
 
         public DbSet<ApplianceImage> ApplianceImages { get; set; }
         public DbSet<Certificate> Certificates { get; set; }
-        public DbSet<Order> Orders { get; set; }
+public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<DeliveryInfo> DeliveryInfo { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
         public DbSet<RepairRequest> RepairRequests { get; set; }
         public DbSet<TechnicianProfile> TechnicianProfiles { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<ReturnRequest> ReturnRequests { get; set; }
 
 
                 protected override void OnModelCreating(ModelBuilder builder)
@@ -62,6 +64,39 @@ builder.Entity<Review>()
     .WithMany()
     .HasForeignKey(r => r.ReviewedUserId)
     .OnDelete(DeleteBehavior.Restrict);
+
+            // ReturnRequest configurations - prevent cascade delete cycles
+            builder.Entity<ReturnRequest>()
+                .HasOne(r => r.Order)
+                .WithMany()
+                .HasForeignKey(r => r.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+builder.Entity<ReturnRequest>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Complaint configurations - prevent cascade delete cycles
+            builder.Entity<Complaint>()
+                .HasOne(c => c.Order)
+                .WithMany()
+                .HasForeignKey(c => c.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+builder.Entity<Complaint>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TechnicianProfile configurations - prevent cascade delete cycles
+            builder.Entity<TechnicianProfile>()
+                .HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
