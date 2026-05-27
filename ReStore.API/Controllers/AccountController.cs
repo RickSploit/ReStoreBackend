@@ -59,15 +59,13 @@ namespace ReStore.Controllers
                 return BadRequest(new { Errors = errors });
             }
 
-            // Generate email confirmation token
-            var confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            
-            // Send confirmation email
-            await _emailService.SendConfirmationEmailAsync(user.Email, user.Id.ToString(), confirmationToken);
+            // Email confirmation disabled — no token generation or email sending needed
+            // var confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            // await _emailService.SendConfirmationEmailAsync(user.Email, user.Id.ToString(), confirmationToken);
 
-            return Ok(new { 
-                Message = "User registered successfully! Please check your email to confirm your account.",
-                requireEmailConfirmation = true
+            return Ok(new {
+                Message = "User registered successfully!",
+                requireEmailConfirmation = false
             });
         }
 
@@ -100,14 +98,7 @@ namespace ReStore.Controllers
             var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
             if (!result.Succeeded) return Unauthorized("Invalid Email or Password.");
 
-            // Check if email is confirmed
-            if (!user.EmailConfirmed)
-            {
-                return Unauthorized(new { 
-                    message = "Please confirm your email before logging in.",
-                    requireEmailConfirmation = true 
-                });
-            }
+            // Email confirmation check removed — users can log in immediately after registration
 
             var roles = await _userManager.GetRolesAsync(user);
 
