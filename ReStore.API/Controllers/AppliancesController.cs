@@ -90,9 +90,9 @@ namespace ReStore.API.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto)
+        public async Task<IActionResult> CreateAppliance([FromBody] ApplianceCreateDto dto)
         {
-            // استخدام الفانكشن السحرية الجديدة
+            // استخدام الفانكشن السحرية 
             var sellerId = GetCurrentUserId();
             if (sellerId == null) 
                 return Unauthorized(new { message = "Invalid token: User ID is missing or incorrect." });
@@ -110,12 +110,12 @@ namespace ReStore.API.Controllers
             _context.Appliances.Add(appliance);
             await _context.SaveChangesAsync();
 
-            if (dto.Image != null)
+            // حفظ لينك الصورة كنص عادي مباشرة بدون رفع ملفات معقدة
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
             {
-                var imageUrl = await _imageService.UploadImageAsync(dto.Image);
                 var applianceImage = new ApplianceImage
                 {
-                    Url = imageUrl,
+                    Url = dto.ImageUrl,
                     IsMain = true,
                     ApplianceId = appliance.Id
                 };
@@ -128,14 +128,14 @@ namespace ReStore.API.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> UpdateAppliance(int id, [FromForm] ApplianceCreateDto dto)
+        public async Task<IActionResult> UpdateAppliance(int id, [FromBody] ApplianceCreateDto dto)
         {
             var appliance = await _context.Appliances.FindAsync(id);
 
             if (appliance == null)
                 return NotFound(new { message = "Appliance not found" });
 
-            // استخدام الفانكشن السحرية الجديدة للحماية
+            // الحماية: التأكد إن اللي بيعدل هو صاحب المنتج
             var currentUserId = GetCurrentUserId();
             if (currentUserId == null || currentUserId.Value != appliance.SellerId)
                 return Forbid();
@@ -149,12 +149,12 @@ namespace ReStore.API.Controllers
             _context.Appliances.Update(appliance);
             await _context.SaveChangesAsync();
 
-            if (dto.Image != null)
+            // إضافة صورة جديدة لو اتبعتت في التعديل
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
             {
-                var imageUrl = await _imageService.UploadImageAsync(dto.Image);
                 var applianceImage = new ApplianceImage
                 {
-                    Url = imageUrl,
+                    Url = dto.ImageUrl,
                     IsMain = false,
                     ApplianceId = appliance.Id
                 };
@@ -189,7 +189,6 @@ namespace ReStore.API.Controllers
         // ==========================================
         private int? GetCurrentUserId()
         {
-            // بتدور على الكليم اللي قيمته تنفع تتحول لرقم فقط وتتجاهل الإيميل
             var claim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier && int.TryParse(c.Value, out _));
             
             if (claim != null && int.TryParse(claim.Value, out int userId))
