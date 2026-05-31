@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http; // مكنتش محتاجينها دلوقتي بس لو موجودة مفيش مشكلة
+using Microsoft.AspNetCore.Http;
 
 namespace ReStore.API.DTOs
 {
@@ -22,7 +22,7 @@ namespace ReStore.API.DTOs
         [Required]
         public int Condition { get; set; } // 0 = New, 1 = Used, 2 = Damaged
 
-        // غيّرنا IFormFile لـ string عشان نستقبل اللينك مباشرة كـ JSON
-        public string? ImageUrl { get; set; } 
+        // هنا التعديل: رجعناها IFormFile عشان تستقبل الصورة كملف من الـ FormData
+        public IFormFile? Image { get; set; } 
     }
 }

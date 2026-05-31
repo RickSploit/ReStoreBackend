@@ -90,7 +90,6 @@ namespace ReStore.API.Controllers
 
         [HttpPost]
         [Authorize]
-        // التعديل هنا: رجعناها FromForm عشان تقرأ الـ FormData من الفرونت إند
         public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto)
         {
             var sellerId = GetCurrentUserId();
@@ -110,11 +109,13 @@ namespace ReStore.API.Controllers
             _context.Appliances.Add(appliance);
             await _context.SaveChangesAsync();
 
-            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            // رفع الصورة الحقيقية وحفظ المسار
+            if (dto.Image != null)
             {
+                var imageUrl = await _imageService.UploadImageAsync(dto.Image);
                 var applianceImage = new ApplianceImage
                 {
-                    Url = dto.ImageUrl,
+                    Url = imageUrl,
                     IsMain = true,
                     ApplianceId = appliance.Id
                 };
@@ -127,7 +128,6 @@ namespace ReStore.API.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        // التعديل هنا أيضاً: FromForm للتعديل
         public async Task<IActionResult> UpdateAppliance(int id, [FromForm] ApplianceCreateDto dto)
         {
             var appliance = await _context.Appliances.FindAsync(id);
@@ -148,11 +148,13 @@ namespace ReStore.API.Controllers
             _context.Appliances.Update(appliance);
             await _context.SaveChangesAsync();
 
-            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            // رفع الصورة الجديدة لو اتغيرت في التعديل
+            if (dto.Image != null)
             {
+                var imageUrl = await _imageService.UploadImageAsync(dto.Image);
                 var applianceImage = new ApplianceImage
                 {
-                    Url = dto.ImageUrl,
+                    Url = imageUrl,
                     IsMain = false,
                     ApplianceId = appliance.Id
                 };
