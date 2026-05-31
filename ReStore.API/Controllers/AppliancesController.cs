@@ -90,9 +90,9 @@ namespace ReStore.API.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> CreateAppliance([FromBody] ApplianceCreateDto dto)
+        // التعديل هنا: رجعناها FromForm عشان تقرأ الـ FormData من الفرونت إند
+        public async Task<IActionResult> CreateAppliance([FromForm] ApplianceCreateDto dto)
         {
-            // استخدام الفانكشن السحرية 
             var sellerId = GetCurrentUserId();
             if (sellerId == null) 
                 return Unauthorized(new { message = "Invalid token: User ID is missing or incorrect." });
@@ -110,7 +110,6 @@ namespace ReStore.API.Controllers
             _context.Appliances.Add(appliance);
             await _context.SaveChangesAsync();
 
-            // حفظ لينك الصورة كنص عادي مباشرة بدون رفع ملفات معقدة
             if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
             {
                 var applianceImage = new ApplianceImage
@@ -128,14 +127,14 @@ namespace ReStore.API.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> UpdateAppliance(int id, [FromBody] ApplianceCreateDto dto)
+        // التعديل هنا أيضاً: FromForm للتعديل
+        public async Task<IActionResult> UpdateAppliance(int id, [FromForm] ApplianceCreateDto dto)
         {
             var appliance = await _context.Appliances.FindAsync(id);
 
             if (appliance == null)
                 return NotFound(new { message = "Appliance not found" });
 
-            // الحماية: التأكد إن اللي بيعدل هو صاحب المنتج
             var currentUserId = GetCurrentUserId();
             if (currentUserId == null || currentUserId.Value != appliance.SellerId)
                 return Forbid();
@@ -149,7 +148,6 @@ namespace ReStore.API.Controllers
             _context.Appliances.Update(appliance);
             await _context.SaveChangesAsync();
 
-            // إضافة صورة جديدة لو اتبعتت في التعديل
             if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
             {
                 var applianceImage = new ApplianceImage
@@ -184,9 +182,6 @@ namespace ReStore.API.Controllers
             return Ok(new { message = "Appliance deleted successfully" });
         }
 
-        // ==========================================
-        // ✨ الفانكشن السحرية لاستخراج الـ ID بشكل آمن ✨
-        // ==========================================
         private int? GetCurrentUserId()
         {
             var claim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier && int.TryParse(c.Value, out _));
