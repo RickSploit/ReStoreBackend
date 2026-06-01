@@ -1,29 +1,17 @@
-using System;
-
 namespace ReStore.Core.Entities
 {
     public class RepairRequest
     {
         public int Id { get; set; }
-        public string DeviceType { get; set; } = string.Empty; 
-        public string ProblemDescription { get; set; } = string.Empty;
-        public DateTime RequestDate { get; set; } = DateTime.UtcNow;
-        public RepairRequestStatus Status { get; set; }
-
-        
-        public int BuyerId { get; set; }
-        public User Buyer { get; set; } = null!;
-
-       
+        public int SellerId { get; set; }
         public int? TechnicianId { get; set; }
-        public User? Technician { get; set; }
-    }
+        public int ApplianceId { get; set; }
+        public string IssuesDescription { get; set; } = string.Empty;
+        public DateTime RequestDate { get; set; } = DateTime.UtcNow;
+        public RepairRequestStatus Status { get; set; } = RepairRequestStatus.Pending;
 
-    public enum RepairRequestStatus
-    {
-        Pending,   
-        Accepted,  
-        Completed, 
-        Rejected   
+        public User Seller { get; set; } = null!;
+        public User Technician { get; set; } = null!;
+        public Appliance Appliance { get; set; } = null!;
     }
 }

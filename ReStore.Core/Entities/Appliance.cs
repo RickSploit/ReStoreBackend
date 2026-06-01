@@ -20,7 +20,10 @@ namespace ReStore.Core.Entities
 
         public int CategoryId { get; set; }
         public Category Category { get; set; } = null!;
-        
+
+        public int? OrderId { get; set; }
+        public Order Order { get; set; } = null!;
+
         // --- التصحيح هنا ---
         // مسحنا ImageUrl وحطينا علاقة الـ One-to-Many مع جدول الصور
         public ICollection<ApplianceImage> Images { get; set; } = new List<ApplianceImage>();

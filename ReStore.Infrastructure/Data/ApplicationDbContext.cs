@@ -25,6 +25,7 @@ public DbSet<Order> Orders { get; set; }
         public DbSet<TechnicianProfile> TechnicianProfiles { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<ReturnRequest> ReturnRequests { get; set; }
+        public DbSet<WishlistItem> WishlistItems { get; set; }
 
 
                 protected override void OnModelCreating(ModelBuilder builder)
@@ -96,6 +97,49 @@ builder.Entity<Complaint>()
                 .HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // WishlistItem configurations - prevent cascade delete cycles
+            builder.Entity<WishlistItem>()
+                .HasOne(w => w.User)
+                .WithMany()
+                .HasForeignKey(w => w.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<WishlistItem>()
+                .HasOne(w => w.Appliance)
+                .WithMany()
+                .HasForeignKey(w => w.ApplianceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Appliance>()
+                .HasOne(a => a.Order)
+                .WithMany(o => o.Appliances)
+                .HasForeignKey(a => a.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.Buyer)
+                .WithMany()
+                .HasForeignKey(o => o.BuyerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<RepairRequest>()
+                .HasOne(r => r.Seller)
+                .WithMany()
+                .HasForeignKey(r => r.SellerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<RepairRequest>()
+                .HasOne(r => r.Technician)
+                .WithMany()
+                .HasForeignKey(r => r.TechnicianId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<RepairRequest>()
+                .HasOne(r => r.Appliance)
+                .WithMany()
+                .HasForeignKey(r => r.ApplianceId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

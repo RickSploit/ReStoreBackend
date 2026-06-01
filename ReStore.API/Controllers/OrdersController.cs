@@ -225,6 +225,90 @@ namespace ReStore.API.Controllers
             return Ok(orderDtos);
         }
 
+        // POST: Buy an appliance (create order for single appliance)
+        [HttpPost("buy/{applianceId}")]
+        public async Task<IActionResult> BuyAppliance(int applianceId)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+                return Unauthorized(new { message = "Invalid token: User ID is missing." });
+
+            var appliance = await _context.Appliances.FindAsync(applianceId);
+            if (appliance == null)
+                return NotFound(new { message = "Appliance not found." });
+
+            if (appliance.Status != ApplianceStatus.Available)
+                return BadRequest(new { message = "Appliance is not available." });
+
+            var order = new Order
+            {
+                BuyerId = userId.Value,
+                TotalAmount = appliance.Price,
+                Status = OrderStatus.Pending
+            };
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            appliance.OrderId = order.Id;
+            appliance.Status = ApplianceStatus.Sold;
+            _context.Appliances.Update(appliance);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Purchase successful!", orderId = order.Id });
+        }
+
+        // GET: Get current user's purchased appliances (Buyer Dashboard)
+        [HttpGet("my-orders")]
+        public async Task<IActionResult> GetMyOrders()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+                return Unauthorized(new { message = "Invalid token: User ID is missing." });
+
+            var appliances = await _context.Appliances
+                .Include(a => a.Images)
+                .Include(a => a.Category)
+                .Include(a => a.Order)
+                .Where(a => a.OrderId != null && a.Order.BuyerId == userId.Value)
+                .ToListAsync();
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+            var applianceDtos = appliances.Select(a => new ApplianceDto
+            {
+                Id = a.Id,
+                Title = a.Title,
+                Description = a.Description,
+                Price = a.Price,
+                Condition = a.Condition.ToString(),
+                CategoryName = a.Category?.Name,
+                Status = a.Status.ToString(),
+                ImageUrl = a.Images.FirstOrDefault(i => i.IsMain)?.Url != null
+                           ? $"{baseUrl}{a.Images.FirstOrDefault(i => i.IsMain)?.Url}"
+                           : null,
+                ImageUrls = a.Images.Select(i => i.Url).ToList()
+            }).ToList();
+
+            return Ok(applianceDtos);
+        }
+
+        // GET: Track order status
+        [HttpGet("{id}/track")]
+        public async Task<IActionResult> TrackOrder(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+                return Unauthorized(new { message = "Invalid token: User ID is missing." });
+
+            var order = await _context.Orders
+                .FirstOrDefaultAsync(o => o.Id == id && o.BuyerId == userId.Value);
+
+            if (order == null)
+                return NotFound(new { message = "Order not found." });
+
+            return Ok(new { status = order.Status.ToString() });
+        }
+
         // Helper method to get current user ID
         private int? GetCurrentUserId()
         {

@@ -27,9 +27,14 @@ namespace ReStore.API.Controllers
         public async Task<IActionResult> GetAppliances(
             [FromQuery] string? search,
             [FromQuery] decimal? minPrice,
-            [FromQuery] decimal? maxPrice)
+            [FromQuery] decimal? maxPrice,
+            [FromQuery] int? categoryId)
         {
-            var query = _context.Appliances.Include(a => a.Images).AsQueryable();
+            var query = _context.Appliances
+                .Include(a => a.Images)
+                .Include(a => a.Category)
+                .Where(a => a.Status == ApplianceStatus.Available)
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -46,6 +51,11 @@ namespace ReStore.API.Controllers
                 query = query.Where(a => a.Price <= maxPrice.Value);
             }
 
+            if (categoryId.HasValue)
+            {
+                query = query.Where(a => a.CategoryId == categoryId.Value);
+            }
+
             var appliances = await query.ToListAsync();
             var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
 
@@ -56,9 +66,12 @@ namespace ReStore.API.Controllers
                 Description = a.Description,
                 Price = a.Price,
                 Condition = a.Condition.ToString(),
-                ImageUrl = a.Images.FirstOrDefault(i => i.IsMain)?.Url != null 
-                           ? $"{baseUrl}{a.Images.FirstOrDefault(i => i.IsMain)?.Url}" 
-                           : null
+                CategoryName = a.Category?.Name,
+                Status = a.Status.ToString(),
+                ImageUrl = a.Images.FirstOrDefault(i => i.IsMain)?.Url != null
+                           ? $"{baseUrl}{a.Images.FirstOrDefault(i => i.IsMain)?.Url}"
+                           : null,
+                ImageUrls = a.Images.Select(i => i.Url).ToList()
             }).ToList();
 
             return Ok(applianceDtos);
@@ -103,7 +116,8 @@ namespace ReStore.API.Controllers
                 Price = dto.Price,
                 CategoryId = dto.CategoryId,
                 SellerId = sellerId.Value,
-                Condition = (ApplianceCondition)dto.Condition
+                Condition = (ApplianceCondition)dto.Condition,
+                Status = ApplianceStatus.Available
             };
 
             _context.Appliances.Add(appliance);
@@ -182,6 +196,36 @@ namespace ReStore.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Appliance deleted successfully" });
+        }
+
+        [HttpGet("my-listings")]
+        [Authorize]
+        public async Task<IActionResult> GetMyListings()
+        {
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == null) return Unauthorized();
+
+            var appliances = await _context.Appliances
+                .Include(a => a.Images)
+                .Include(a => a.Category)
+                .Where(a => a.SellerId == currentUserId.Value)
+                .ToListAsync();
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+            var applianceDtos = appliances.Select(a => new ApplianceDto
+            {
+                Id = a.Id,
+                Title = a.Title,
+                Description = a.Description,
+                Price = a.Price,
+                Condition = a.Condition.ToString(),
+                CategoryName = a.Category?.Name,
+                Status = a.Status.ToString(),
+                ImageUrl = a.Images.FirstOrDefault(i => i.IsMain)?.Url != null ? $"{baseUrl}{a.Images.FirstOrDefault(i => i.IsMain)?.Url}" : null,
+                ImageUrls = a.Images.Select(i => i.Url).ToList()
+            }).ToList();
+
+            return Ok(applianceDtos);
         }
 
         private int? GetCurrentUserId()

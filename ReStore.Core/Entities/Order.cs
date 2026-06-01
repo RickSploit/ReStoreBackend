@@ -9,7 +9,7 @@ namespace ReStore.Core.Entities
         public DateTime OrderDate { get; set; } = DateTime.UtcNow; 
         public decimal TotalAmount { get; set; } 
         public decimal PlatformCommission { get; set; }
-        public OrderStatus Status { get; set; } 
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
         
         public int BuyerId { get; set; }
@@ -17,13 +17,15 @@ namespace ReStore.Core.Entities
 
         
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        public ICollection<Appliance> Appliances { get; set; } = new List<Appliance>();
     }
 
     public enum OrderStatus
     {
-        Pending,  
-        Shipped,  
-        Delivered, 
-        Cancelled  
+        Pending,
+        PickedUp,
+        InTransit,
+        Delivered,
+        Cancelled
     }
 }

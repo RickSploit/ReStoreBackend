@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReStore.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using ReStore.Infrastructure.Data;
 namespace ReStore.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601145834_AddOrdersAndTracking")]
+    partial class AddOrdersAndTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -458,18 +461,19 @@ namespace ReStore.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ApplianceId")
+                    b.Property<int>("BuyerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("IssuesDescription")
+                    b.Property<string>("DeviceType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProblemDescription")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("RequestDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("SellerId")
-                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -479,9 +483,7 @@ namespace ReStore.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ApplianceId");
-
-                    b.HasIndex("SellerId");
+                    b.HasIndex("BuyerId");
 
                     b.HasIndex("TechnicianId");
 
@@ -857,26 +859,17 @@ namespace ReStore.Infrastructure.Migrations
 
             modelBuilder.Entity("ReStore.Core.Entities.RepairRequest", b =>
                 {
-                    b.HasOne("ReStore.Core.Entities.Appliance", "Appliance")
+                    b.HasOne("ReStore.Core.Entities.User", "Buyer")
                         .WithMany()
-                        .HasForeignKey("ApplianceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ReStore.Core.Entities.User", "Seller")
-                        .WithMany()
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ReStore.Core.Entities.User", "Technician")
                         .WithMany()
-                        .HasForeignKey("TechnicianId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("TechnicianId");
 
-                    b.Navigation("Appliance");
-
-                    b.Navigation("Seller");
+                    b.Navigation("Buyer");
 
                     b.Navigation("Technician");
                 });
