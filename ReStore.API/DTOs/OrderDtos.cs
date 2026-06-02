@@ -18,6 +18,7 @@ namespace ReStore.API.DTOs
         public int ApplianceId { get; set; }
         public string ApplianceTitle { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public string? ApplianceImageUrl { get; set; }
     }
 
     public class CreateOrderDto

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReStore.API.DTOs;
 using ReStore.Core.Entities;
+using ReStore.API.Entities;
+
 using ReStore.Infrastructure.Data;
 using System.Security.Claims;
 
@@ -20,6 +22,20 @@ namespace ReStore.API.Controllers
             _context = context;
         }
 
+        private string? GetImageUrl(string? relativeUrl)
+        {
+            if (string.IsNullOrWhiteSpace(relativeUrl)) return null;
+            return $"{Request.Scheme}://{Request.Host}{Request.PathBase}{relativeUrl}";
+        }
+
+        private string? GetMainImageUrl(System.Collections.Generic.ICollection<ReStore.API.Entities.ApplianceImage>? images)
+
+
+        {
+            var main = images?.FirstOrDefault(i => i.IsMain);
+            return GetImageUrl(main?.Url) ?? GetImageUrl(images?.FirstOrDefault()?.Url);
+        }
+
         // GET: Get current user's orders
         [HttpGet]
         public async Task<IActionResult> GetUserOrders()
@@ -31,6 +47,7 @@ namespace ReStore.API.Controllers
             var orders = await _context.Orders
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Appliance)
+                        .ThenInclude(a => a.Images)
                 .Include(o => o.Buyer)
                 .Where(o => o.BuyerId == userId.Value)
                 .ToListAsync();
@@ -49,7 +66,8 @@ namespace ReStore.API.Controllers
                     Id = oi.Id,
                     ApplianceId = oi.ApplianceId,
                     ApplianceTitle = oi.Appliance?.Title ?? string.Empty,
-                    Price = oi.Price
+                    Price = oi.Price,
+                    ApplianceImageUrl = GetMainImageUrl(oi.Appliance?.Images)
                 }).ToList()
             }).ToList();
 
@@ -67,6 +85,7 @@ namespace ReStore.API.Controllers
             var order = await _context.Orders
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Appliance)
+                        .ThenInclude(a => a.Images)
                 .Include(o => o.Buyer)
                 .FirstOrDefaultAsync(o => o.Id == id);
 
@@ -92,7 +111,8 @@ namespace ReStore.API.Controllers
                     Id = oi.Id,
                     ApplianceId = oi.ApplianceId,
                     ApplianceTitle = oi.Appliance?.Title ?? string.Empty,
-                    Price = oi.Price
+                    Price = oi.Price,
+                    ApplianceImageUrl = GetMainImageUrl(oi.Appliance?.Images)
                 }).ToList()
             };
 
@@ -201,6 +221,7 @@ namespace ReStore.API.Controllers
             var orders = await _context.Orders
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Appliance)
+                        .ThenInclude(a => a.Images)
                 .Include(o => o.Buyer)
                 .ToListAsync();
 
@@ -218,7 +239,8 @@ namespace ReStore.API.Controllers
                     Id = oi.Id,
                     ApplianceId = oi.ApplianceId,
                     ApplianceTitle = oi.Appliance?.Title ?? string.Empty,
-                    Price = oi.Price
+                    Price = oi.Price,
+                    ApplianceImageUrl = GetMainImageUrl(oi.Appliance?.Images)
                 }).ToList()
             }).ToList();
 
@@ -270,26 +292,34 @@ namespace ReStore.API.Controllers
                 .Include(a => a.Images)
                 .Include(a => a.Category)
                 .Include(a => a.Order)
-                .Where(a => a.OrderId != null && a.Order.BuyerId == userId.Value)
+                .Where(a => a.OrderId != null && a.Order!.BuyerId == userId.Value)
                 .ToListAsync();
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
-            var applianceDtos = appliances.Select(a => new ApplianceDto
+            var orderDtos = appliances.Select(a => new OrderDto
             {
-                Id = a.Id,
-                Title = a.Title,
-                Description = a.Description,
-                Price = a.Price,
-                Condition = a.Condition.ToString(),
-                CategoryName = a.Category?.Name,
-                Status = a.Status.ToString(),
-                ImageUrl = a.Images.FirstOrDefault(i => i.IsMain)?.Url != null
-                           ? $"{baseUrl}{a.Images.FirstOrDefault(i => i.IsMain)?.Url}"
-                           : null,
-                ImageUrls = a.Images.Select(i => i.Url).ToList()
+                // NOTE: Endpoint is mis-structured in the codebase (returns one OrderDto per appliance).
+                // Keep current behavior, but include ApplianceImageUrl.
+                Id = a.Order!.Id,
+                OrderDate = a.Order!.OrderDate,
+                TotalAmount = a.Order!.TotalAmount,
+                PlatformCommission = a.Order!.PlatformCommission,
+                Status = a.Order!.Status.ToString(),
+                BuyerId = a.Order!.BuyerId,
+                BuyerName = a.Order!.Buyer?.Name ?? string.Empty,
+                OrderItems = new List<OrderItemDto>
+                {
+                    new OrderItemDto
+                    {
+                        Id = 0,
+                        ApplianceId = a.Id,
+                        ApplianceTitle = a.Title,
+                        Price = a.Price,
+                        ApplianceImageUrl = GetMainImageUrl(a.Images)
+                    }
+                }
             }).ToList();
 
-            return Ok(applianceDtos);
+            return Ok(orderDtos);
         }
 
         // GET: Track order status
@@ -321,3 +351,4 @@ namespace ReStore.API.Controllers
         }
     }
 }
+
