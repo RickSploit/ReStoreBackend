@@ -64,17 +64,21 @@ builder.Services.AddScoped<ImageService>();
 // خدمة الإيميل
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Smart Pricing
+builder.Services.AddScoped<ReStore.Application.Interfaces.ISmartPricingService, ReStore.Application.Services.SmartPricingService>();
+
 // إعدادات الكورز (CORS) 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200") 
+        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
               .AllowAnyMethod()    
               .AllowAnyHeader()
-              .AllowCredentials(); 
+              .AllowCredentials();
     });
 });
+
 
 var app = builder.Build();
 

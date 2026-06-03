@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReStore.API.Entities;
 using ReStore.Infrastructure.Data;
-using System.Security.Claims;
 
 namespace ReStore.API.Controllers
 {
@@ -19,6 +18,59 @@ namespace ReStore.API.Controllers
             _context = context;
         }
 
+        public record DashboardStatsDto
+        {
+            public int TotalUsers { get; init; }
+            public int TotalAppliances { get; init; }
+            public int TotalOrders { get; init; }
+            public int TotalRepairRequests { get; init; }
+        }
+
+
+        /// <summary>
+        /// Returns dashboard statistics (Admin only)
+        /// </summary>
+        [HttpGet("dashboard-stats")]
+        public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
+        {
+            var totalUsers = await _context.Users.CountAsync();
+            var totalAppliances = await _context.Appliances.CountAsync();
+            var totalOrders = await _context.Orders.CountAsync();
+            var totalRepairRequests = await _context.RepairRequests.CountAsync();
+
+            return new DashboardStatsDto
+            {
+                TotalUsers = totalUsers,
+                TotalAppliances = totalAppliances,
+                TotalOrders = totalOrders,
+                TotalRepairRequests = totalRepairRequests
+            };
+        }
+
+        /// <summary>
+        /// Returns pending technician profiles (Admin only)
+        /// </summary>
+        [HttpGet("pending-technicians")]
+        public async Task<IActionResult> GetPendingTechnicians()
+        {
+            var pendingTechnicians = await _context.TechnicianProfiles
+                .Include(t => t.User)
+                .Where(t => !t.IsApproved)
+                .Select(t => new
+                {
+                    ProfileId = t.Id,
+                    UserId = t.UserId,
+                    t.User.Name,
+                    t.User.Email,
+                    t.Specialty,
+                    t.ExperienceYears,
+                    t.Rating
+                })
+                .ToListAsync();
+
+            return Ok(pendingTechnicians);
+        }
+
         /// <summary>
         /// Approve a technician account (Admin only)
         /// </summary>
@@ -32,11 +84,13 @@ namespace ReStore.API.Controllers
             profile.IsApproved = true;
             profile.ApprovedDate = DateTime.UtcNow;
 
-            _context.TechnicianProfiles.Update(profile);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Technician account approved successfully!" });
         }
+
+
+
 
         /// <summary>
         /// Reject a technician account (Admin only)
@@ -57,28 +111,7 @@ namespace ReStore.API.Controllers
             return Ok(new { message = "Technician account rejected." });
         }
 
-        /// <summary>
-        /// Get all pending technician requests (Admin only)
-        /// </summary>
-        [HttpGet("pending-technicians")]
-        public async Task<IActionResult> GetPendingTechnicians()
-        {
-            var pendingTechnicians = await _context.TechnicianProfiles
-                .Include(t => t.User)
-                .Where(t => !t.IsApproved)
-                .ToListAsync();
 
-return Ok(pendingTechnicians.Select(t => new
-            {
-                ProfileId = t.Id,
-                UserId = t.User.Id,
-                t.User.Name,
-                t.User.Email,
-                t.Specialty,
-                t.ExperienceYears,
-                t.Rating
-            }));
-        }
 
         /// <summary>
         /// Get all approved technicians (Admin only)
