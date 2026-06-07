@@ -280,7 +280,6 @@ namespace ReStore.API.Controllers
             return Ok(new { message = "Purchase successful!", orderId = order.Id });
         }
 
-        // GET: Get current user's purchased appliances (Buyer Dashboard)
         [HttpGet("my-orders")]
         public async Task<IActionResult> GetMyOrders()
         {
@@ -297,8 +296,7 @@ namespace ReStore.API.Controllers
 
             var orderDtos = appliances.Select(a => new OrderDto
             {
-                // NOTE: Endpoint is mis-structured in the codebase (returns one OrderDto per appliance).
-                // Keep current behavior, but include ApplianceImageUrl.
+               
                 Id = a.Order!.Id,
                 OrderDate = a.Order!.OrderDate,
                 TotalAmount = a.Order!.TotalAmount,
@@ -322,7 +320,6 @@ namespace ReStore.API.Controllers
             return Ok(orderDtos);
         }
 
-        // GET: Track order status
         [HttpGet("{id}/track")]
         public async Task<IActionResult> TrackOrder(int id)
         {

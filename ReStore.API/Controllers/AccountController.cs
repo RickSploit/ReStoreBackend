@@ -59,9 +59,6 @@ namespace ReStore.Controllers
                 return BadRequest(new { Errors = errors });
             }
 
-            // Email confirmation disabled — no token generation or email sending needed
-            // var confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            // await _emailService.SendConfirmationEmailAsync(user.Email, user.Id.ToString(), confirmationToken);
 
             return Ok(new {
                 Message = "User registered successfully!",
@@ -98,11 +95,8 @@ namespace ReStore.Controllers
             var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
             if (!result.Succeeded) return Unauthorized("Invalid Email or Password.");
 
-            // Email confirmation check removed — users can log in immediately after registration
-
             var roles = await _userManager.GetRolesAsync(user);
 
-            // Check if user is a Technician and if they are approved
             if (roles.Contains("Technician"))
             {
                 var profile = _context.TechnicianProfiles.FirstOrDefault(t => t.User.Id == user.Id);
@@ -121,7 +115,14 @@ namespace ReStore.Controllers
             {
                 Message = "Login Successful",
                 Token = token,
-                User = new { user.Id, user.Name, user.Email, Roles = roles }
+                User = new UserDto
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    Email = user.Email ?? string.Empty,
+                    Roles = roles,
+                    PhoneNumber = user.PhoneNumber ?? string.Empty
+                }
             });
         }
 
@@ -140,7 +141,6 @@ namespace ReStore.Controllers
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            // قراءة البيانات بنفس الأسماء اللي في appsettings.json مع وضع قيمة افتراضية للحماية
             var jwtKey = _config["Jwt:Key"] ?? "ThisIsASuperSecretKeyForReStoreAppThatNeedsToBeLongEnough123!";
             var jwtIssuer = _config["Jwt:Issuer"] ?? "http://localhost:5104";
             var jwtAudience = _config["Jwt:Audience"] ?? "http://localhost:5104";

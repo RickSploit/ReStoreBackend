@@ -34,14 +34,16 @@ namespace ReStore.Application.Services
                     throw new ArgumentException("Condition must be one of: LikeNew, Good, Fair.", nameof(condition));
             }
 
-            // Convert percent discount into multiplier: price * (1 - discount/100)
             var discountedPrice = originalPrice * (1m - discountPercent / 100m);
 
-            // Final price never drops below 20% of original price.
             var minPrice = originalPrice * 0.20m;
 
             return discountedPrice < minPrice ? minPrice : discountedPrice;
         }
     }
 }
+
+
+
+
 
